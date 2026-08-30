@@ -1,0 +1,4 @@
+pandas
+jupyter==1.1.1
+scikit-learn==1.9.0
+nltk==3.10.3
