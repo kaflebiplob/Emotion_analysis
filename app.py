@@ -10,27 +10,38 @@ stop_words.discard("not")
 def clean_text(text):
     text = text.lower()
     text = re.sub(r"[^a-z\s]", "", text)
-    words = text.split()
-    words = [w for w in words if w not in stop_words]
+    words = [w for w in text.split() if w not in stop_words]
     return " ".join(words)
 
 
-with open("models/my_model.pkl", "rb") as f:
-    model = pickle.load(f)
+def load_artifacts():
+    with open("models/my_model.pkl", "rb") as f:
+        model = pickle.load(f)
+    with open("models/my_vectorizer.pkl", "rb") as f:
+        vectorizer = pickle.load(f)
+    with open("models/label_mapping.pkl", "rb") as f:
+        mapping = pickle.load(f)
+    return model, vectorizer, mapping
 
-with open("models/my_vectorizer.pkl", "rb") as f:
-    vectorize = pickle.load(f)
 
-with open("models/label_mapping.pkl", "rb") as f:
-    label_mapping = pickle.load(f)
+model, vectorizer, label_mapping = load_artifacts()
 
-st.title("Emotion Detector")
+st.set_page_config(page_title="My Emotion Classifier")
+st.title("What's the emotion in your sentence?")
+st.caption("Trained on 2,000 samples using Logistic Regression + TF-IDF")
 
-user_input = st.text_input("Type a sentence:")
+user_input = st.text_area("Enter a sentence:", height=100)
 
-if user_input:
-    cleaned = clean_text(user_input)
-    vector = vectorize.transform([cleaned])
-    prediction = model.predict(vector)[0]
-    emotion = label_mapping[prediction]
-    st.write("Predicted emotion:", emotion)
+if st.button("Predict"):
+    if user_input.strip() == "":
+        st.warning("Please type something first.")
+    else:
+        cleaned = clean_text(user_input)
+        vector = vectorizer.transform([cleaned])
+        prediction = model.predict(vector)[0]
+        probabilities = model.predict_proba(vector)[0]
+        confidence = round(max(probabilities) * 100, 1)
+
+        emotion = label_mapping[prediction]
+        st.subheader(f"Emotion: {emotion}")
+        st.write(f"Confidence: {confidence}%")
