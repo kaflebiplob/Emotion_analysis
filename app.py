@@ -113,7 +113,7 @@ except Exception as e:
 st.markdown(
     """
 <div class="hero-title">🎭 Emotion Detector</div>
-<div class="hero-sub">Logistic Regression + TF-IDF · trained on GoEmotions (28 emotion classes)</div>
+<div class="hero-sub">Linear SVM (calibrated) + TF-IDF · trained on GoEmotions (28 emotion classes)</div>
 """,
     unsafe_allow_html=True,
 )
@@ -128,11 +128,12 @@ for emo, meta in EMOTION_META.items():
     )
 st.sidebar.markdown("---")
 st.sidebar.caption(
-    "Model: Logistic Regression\n"
+    "Model: Linear SVM (calibrated for probabilities)\n"
     "Features: TF-IDF\n"
     "Classes: 28 (GoEmotions)\n"
+    "Test accuracy: ~43% · Macro F1: ~0.36\n"
     "Note: dataset is highly imbalanced — 'neutral' is ~34% of samples, "
-    "so treat macro F1 as the more meaningful accuracy metric."
+    "so macro F1 is the more meaningful metric here."
 )
 
 page = st.sidebar.radio("Mode", ["Single sentence", "Batch (CSV/TXT)"])
@@ -262,5 +263,5 @@ else:
 
 st.divider()
 st.caption(
-    "Built as a learning project · Logistic Regression on TF-IDF features · GoEmotions dataset (28 classes)"
+    "Built as a learning project · Linear SVM (calibrated) on TF-IDF features · GoEmotions dataset (28 classes)"
 )
