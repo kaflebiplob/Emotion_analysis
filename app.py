@@ -14,14 +14,39 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Full GoEmotions label set (27 emotions + neutral)
 EMOTION_META = {
-    "joy": {"emoji": "😄", "color": "#F2B705"},
-    "sadness": {"emoji": "😢", "color": "#4C8BF5"},
+    "admiration": {"emoji": "🤩", "color": "#F2B705"},
+    "amusement": {"emoji": "😄", "color": "#F5A623"},
     "anger": {"emoji": "😡", "color": "#E45858"},
+    "annoyance": {"emoji": "😒", "color": "#D9784B"},
+    "approval": {"emoji": "👍", "color": "#6FCF97"},
+    "caring": {"emoji": "🤗", "color": "#F0679A"},
+    "confusion": {"emoji": "😕", "color": "#A97CD1"},
+    "curiosity": {"emoji": "🧐", "color": "#56B4D3"},
+    "desire": {"emoji": "😍", "color": "#E0559A"},
+    "disappointment": {"emoji": "😞", "color": "#7A7A9D"},
+    "disapproval": {"emoji": "👎", "color": "#C0555A"},
+    "disgust": {"emoji": "🤢", "color": "#7BA05B"},
+    "embarrassment": {"emoji": "😳", "color": "#E39BB3"},
+    "excitement": {"emoji": "🤩", "color": "#F2A93B"},
     "fear": {"emoji": "😨", "color": "#8E6FD1"},
+    "gratitude": {"emoji": "🙏", "color": "#4CAF7D"},
+    "grief": {"emoji": "😭", "color": "#5B5B70"},
+    "joy": {"emoji": "😄", "color": "#F2B705"},
     "love": {"emoji": "❤️", "color": "#F0679A"},
+    "nervousness": {"emoji": "😬", "color": "#B08CD1"},
+    "optimism": {"emoji": "🌤️", "color": "#5AC98C"},
+    "pride": {"emoji": "😌", "color": "#D6A94C"},
+    "realization": {"emoji": "💡", "color": "#4C8BF5"},
+    "relief": {"emoji": "😮‍💨", "color": "#6FB1C9"},
+    "remorse": {"emoji": "😔", "color": "#8A6C6C"},
+    "sadness": {"emoji": "😢", "color": "#4C8BF5"},
     "surprise": {"emoji": "😲", "color": "#5AC98C"},
+    "neutral": {"emoji": "😐", "color": "#999999"},
 }
+
+DEFAULT_META = {"emoji": "🤔", "color": "#999999"}
 
 # ---------------- STYLE ----------------
 st.markdown(
@@ -43,8 +68,8 @@ code, .mono { font-family: 'JetBrains Mono', monospace !important; }
 .result-conf { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; opacity: 0.7; }
 
 .legend-row {
-    display: flex; justify-content: space-between; padding: 0.3rem 0;
-    border-bottom: 1px dashed rgba(128,128,128,0.15); font-size: 0.85rem;
+    display: flex; justify-content: space-between; padding: 0.25rem 0;
+    border-bottom: 1px dashed rgba(128,128,128,0.15); font-size: 0.82rem;
 }
 </style>
 """,
@@ -65,7 +90,9 @@ def load_artifacts():
 
 
 stop_words = set(stopwords.words("english"))
-stop_words.discard("not")
+# Keep negation words — they matter a lot for emotion/sentiment signal
+for negation in ("not", "no", "nor", "never"):
+    stop_words.discard(negation)
 
 
 def clean_text(text):
@@ -86,7 +113,7 @@ except Exception as e:
 st.markdown(
     """
 <div class="hero-title">🎭 Emotion Detector</div>
-<div class="hero-sub">Logistic Regression + TF-IDF · trained on 2,000 sentences</div>
+<div class="hero-sub">Logistic Regression + TF-IDF · trained on GoEmotions (28 emotion classes)</div>
 """,
     unsafe_allow_html=True,
 )
@@ -101,7 +128,11 @@ for emo, meta in EMOTION_META.items():
     )
 st.sidebar.markdown("---")
 st.sidebar.caption(
-    "Model: Logistic Regression\nFeatures: TF-IDF (4,645 words)\nTest accuracy: ~61%"
+    "Model: Logistic Regression\n"
+    "Features: TF-IDF\n"
+    "Classes: 28 (GoEmotions)\n"
+    "Note: dataset is highly imbalanced — 'neutral' is ~34% of samples, "
+    "so treat macro F1 as the more meaningful accuracy metric."
 )
 
 page = st.sidebar.radio("Mode", ["Single sentence", "Batch (CSV/TXT)"])
@@ -112,10 +143,12 @@ if page == "Single sentence":
         st.session_state.input_text = ""
 
     samples = {
-        "Joy": "I can't believe I got the job, this is amazing!",
-        "Sadness": "I miss my old friends so much.",
-        "Anger": "Why would they cancel the trip without telling me?",
+        "Admiration": "Wow, you did an incredible job on this!",
+        "Gratitude": "Thank you so much, I really appreciate it.",
+        "Annoyance": "Why would they cancel the trip without telling me?",
         "Fear": "I feel scared and anxious about tomorrow.",
+        "Curiosity": "I wonder how this actually works.",
+        "Sadness": "I miss my old friends so much.",
     }
     st.caption("Try an example:")
     cols = st.columns(len(samples))
@@ -142,7 +175,7 @@ if page == "Single sentence":
             pred_id = model.predict(vector)[0]
             emotion = label_mapping[pred_id]
             confidence = round(max(probs) * 100, 1)
-            meta = EMOTION_META.get(emotion, {"emoji": "🤔", "color": "#999999"})
+            meta = EMOTION_META.get(emotion, DEFAULT_META)
 
             st.markdown(
                 f"""
@@ -165,10 +198,19 @@ if page == "Single sentence":
                     ],
                     "Probability (%)": [round(p * 100, 1) for p in probs],
                 }
-            ).sort_values("Probability (%)", ascending=True)
+            ).sort_values("Probability (%)", ascending=False)
 
-            st.markdown("**Probability breakdown**")
-            st.bar_chart(probs_df.set_index("Emotion"), use_container_width=True)
+            # With 28 classes, only show the top N so the chart stays readable
+            top_n = 10
+            probs_df_top = probs_df.head(top_n).sort_values(
+                "Probability (%)", ascending=True
+            )
+
+            st.markdown(f"**Top {top_n} probability breakdown**")
+            st.bar_chart(probs_df_top.set_index("Emotion"), use_container_width=True)
+
+            with st.expander("Show full probability breakdown (all 28 classes)"):
+                st.dataframe(probs_df.reset_index(drop=True), use_container_width=True)
 
 # ---------------- PAGE 2: BATCH ----------------
 else:
@@ -219,4 +261,6 @@ else:
             st.error(f"Something went wrong reading that file: {e}")
 
 st.divider()
-st.caption("Built as a learning project · Logistic Regression on TF-IDF features")
+st.caption(
+    "Built as a learning project · Logistic Regression on TF-IDF features · GoEmotions dataset (28 classes)"
+)
