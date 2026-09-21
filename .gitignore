@@ -1,5 +1,6 @@
 # Virtual environment
 venv/
+jupyter-venv/
 
 # Python cache
 __pycache__/
