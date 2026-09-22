@@ -26,38 +26,113 @@ st.set_page_config(
 
 # Emotions
 EMOTION_META = {
-    "anger": {"emoji": "😡", "color": "#E45858"},
-    "fear": {"emoji": "😨", "color": "#8E6FD1"},
-    "joy": {"emoji": "😄", "color": "#F2B705"},
-    "love": {"emoji": "❤️", "color": "#F0679A"},
-    "sadness": {"emoji": "😢", "color": "#4C8BF5"},
-    "surprise": {"emoji": "😲", "color": "#5AC98C"},
+    "anger": {"emoji": "😡", "color": "#EF4444"},
+    "fear": {"emoji": "😨", "color": "#8B5CF6"},
+    "joy": {"emoji": "😄", "color": "#F59E0B"},
+    "love": {"emoji": "❤️", "color": "#EC4899"},
+    "sadness": {"emoji": "😢", "color": "#3B82F6"},
+    "surprise": {"emoji": "😲", "color": "#10B981"},
 }
 
-DEFAULT_META = {"emoji": "🤔", "color": "#999999"}
+DEFAULT_META = {"emoji": "🤔", "color": "#6B7280"}
 
 # ---------------- STYLE ----------------
 st.markdown(
     """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
-code, .mono { font-family: 'JetBrains Mono', monospace !important; }
-
-.hero-title { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0; }
-.hero-sub   { opacity: 0.65; font-size: 0.9rem; margin-top: 0.1rem; }
-
-.result-card {
-    border-radius: 10px; border: 1px solid rgba(128,128,128,0.2);
-    border-left: 6px solid var(--accent); padding: 1.2rem 1.5rem;
-    background: rgba(128,128,128,0.05); margin-top: 1rem;
+:root {
+    --border-soft: rgba(128,128,128,0.25);
 }
-.result-emotion { font-size: 1.7rem; font-weight: 800; text-transform: capitalize; margin: 0; }
-.result-conf { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; opacity: 0.7; }
 
+/* ---------- Hero ---------- */
+.hero-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+.hero-sub {
+    opacity: 0.65;
+    font-size: 0.88rem;
+    margin-top: 0.15rem;
+}
+
+/* ---------- Section label ---------- */
+.section-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.6;
+    margin-bottom: 0.4rem;
+}
+
+/* ---------- Result card ---------- */
+.result-card {
+    border-radius: 6px;
+    border: 1px solid var(--border-soft);
+    border-left: 4px solid var(--accent);
+    padding: 1rem 1.3rem;
+    margin-top: 1rem;
+}
+.result-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.result-emotion {
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    margin: 0;
+}
+.result-conf {
+    font-family: monospace;
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+/* ---------- Breakdown label ---------- */
+.breakdown-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0.75;
+    margin-top: 1.2rem;
+    margin-bottom: 0.3rem;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.6;
+    margin-bottom: 0.4rem;
+}
 .legend-row {
-    display: flex; justify-content: space-between; padding: 0.25rem 0;
-    border-bottom: 1px dashed rgba(128,128,128,0.15); font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.15rem 0;
+    font-size: 0.85rem;
+}
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.sidebar-card {
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    opacity: 0.8;
+    margin-top: 0.5rem;
+}
+
+/* ---------- Footer ---------- */
+.footer-caption {
+    text-align: center;
+    opacity: 0.5;
+    font-size: 0.8rem;
 }
 </style>
 """,
@@ -105,21 +180,32 @@ st.markdown(
 st.divider()
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.markdown("**Sentiments**")
+st.sidebar.markdown(
+    '<div class="sidebar-title">Sentiments</div>', unsafe_allow_html=True
+)
 for emo, meta in EMOTION_META.items():
     st.sidebar.markdown(
-        f"<div class='legend-row'><span>{meta['emoji']} {emo.capitalize()}</span></div>",
+        f"""<div class='legend-row'>
+                <span class='legend-dot' style='background:{meta['color']};'></span>
+                <span>{meta['emoji']} {emo.capitalize()}</span>
+            </div>""",
         unsafe_allow_html=True,
     )
-st.sidebar.markdown("---")
-st.sidebar.caption(
-    "Model: Logistic Regression (class_weight='balanced')\n"
-    "Features: Bag-of-Words\n"
-    "Classes: 6 (anger, fear, joy, love, sadness, surprise)\n"
-    "Test accuracy: ~89%\n"
-    "Note: surprise & love are the rarest classes and slightly less reliable."
+
+st.sidebar.markdown(
+    """
+<div class="sidebar-card">
+    <b>Model</b> · Logistic Regression (class_weight='balanced')<br>
+    <b>Features</b> · Bag-of-Words<br>
+    <b>Classes</b> · 6 (anger, fear, joy, love, sadness, surprise)<br>
+    <b>Test accuracy</b> · ~89%<br><br>
+    Surprise &amp; love are the rarest classes and slightly less reliable.
+</div>
+""",
+    unsafe_allow_html=True,
 )
 
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 page = st.sidebar.radio("Mode", ["Single sentence", "Batch (CSV/TXT)"])
 
 
@@ -137,10 +223,12 @@ if page == "Single sentence":
         "Surprise": "I was totally shocked by the news.",
     }
 
-    st.caption("Try an example:")
+    st.markdown(
+        '<div class="section-label">Try an example</div>', unsafe_allow_html=True
+    )
     cols = st.columns(len(samples))
     for col, (label, text) in zip(cols, samples.items()):
-        if col.button(label, use_container_width=True):
+        if col.button(label, width="stretch"):
             st.session_state.input_text = text
 
     user_input = st.text_area(
@@ -150,7 +238,7 @@ if page == "Single sentence":
         placeholder="Type how you're feeling...",
     )
 
-    if st.button("Predict Sentiment", type="primary", use_container_width=True):
+    if st.button("Predict Sentiment", type="primary", width="stretch"):
         if not model_loaded:
             st.stop()
         if user_input.strip() == "":
@@ -167,11 +255,11 @@ if page == "Single sentence":
             st.markdown(
                 f"""
             <div class="result-card" style="--accent: {meta['color']};">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="result-top">
                     <div class="result-emotion" style="color:{meta['color']};">
                         {meta['emoji']} {emotion}
                     </div>
-                    <div class="result-conf">confidence: {confidence}%</div>
+                    <div class="result-conf">confidence · {confidence}%</div>
                 </div>
             </div>
             """,
@@ -188,13 +276,16 @@ if page == "Single sentence":
                 }
             ).sort_values("Probability (%)", ascending=False)
 
-            st.markdown(f"**Probability breakdown**")
+            st.markdown(
+                '<div class="breakdown-label">Probability breakdown</div>',
+                unsafe_allow_html=True,
+            )
 
             st.bar_chart(
                 probs_df.sort_values("Probability (%)", ascending=True).set_index(
                     "Emotion"
                 ),
-                use_container_width=True,
+                width="stretch",
             )
 
 # ---------------- PAGE 2: BATCH ----------------
@@ -230,9 +321,12 @@ else:
                 result_df["predicted_emotion"] = label_encoder.inverse_transform(preds)
                 result_df["confidence"] = np.round(confs * 100, 1)
 
-                st.dataframe(result_df, use_container_width=True)
+                st.dataframe(result_df, width="stretch")
 
-                st.markdown("**Sentiment distribution**")
+                st.markdown(
+                    '<div class="breakdown-label">Sentiment distribution</div>',
+                    unsafe_allow_html=True,
+                )
                 st.bar_chart(result_df["predicted_emotion"].value_counts())
 
                 csv_bytes = result_df.to_csv(index=False).encode("utf-8")
@@ -246,6 +340,7 @@ else:
             st.error(f"Something went wrong reading that file: {e}")
 
 st.divider()
-st.caption(
-    "Built as a learning project · Logistic Regression (class-balanced) on Bag-of-Words features"
+st.markdown(
+    '<div class="footer-caption">Built as a learning project · Logistic Regression (class-balanced) on Bag-of-Words features</div>',
+    unsafe_allow_html=True,
 )
