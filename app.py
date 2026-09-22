@@ -124,13 +124,14 @@ if page == "Single sentence":
         st.session_state.input_text = ""
 
     samples = {
-        "Admiration": "Wow, you did an incredible job on this!",
-        "Gratitude": "Thank you so much, I really appreciate it.",
-        "Annoyance": "Why would they cancel the trip without telling me?",
+        "Anger": "This makes me so angry, I can't believe it.",
         "Fear": "I feel scared and anxious about tomorrow.",
-        "Curiosity": "I wonder how this actually works.",
+        "Joy": "I am so happy right now, this is the best day.",
+        "Love": "I love spending time with my family.",
         "Sadness": "I miss my old friends so much.",
+        "Surprise": "I can't believe this actually happened.",
     }
+
     st.caption("Try an example:")
     cols = st.columns(len(samples))
     for col, (label, text) in zip(cols, samples.items()):
@@ -144,7 +145,7 @@ if page == "Single sentence":
         placeholder="Type how you're feeling...",
     )
 
-    if st.button("Predict emotion", type="primary", use_container_width=True):
+    if st.button("Predict Sentiment", type="primary", use_container_width=True):
         if not model_loaded:
             st.stop()
         if user_input.strip() == "":
@@ -154,7 +155,7 @@ if page == "Single sentence":
             vector = vectorizer.transform([cleaned])
             probs = model.predict_proba(vector)[0]
             pred_id = model.predict(vector)[0]
-            emotion = label_mapping[pred_id]
+            emotion = label_encoder.inverse_transform[pred_id][0]
             confidence = round(max(probs) * 100, 1)
             meta = EMOTION_META.get(emotion, DEFAULT_META)
 
@@ -175,23 +176,21 @@ if page == "Single sentence":
             probs_df = pd.DataFrame(
                 {
                     "Emotion": [
-                        label_mapping[i].capitalize() for i in range(len(probs))
+                        label_encoder.classes_[i].capitalize()
+                        for i in range(len(probs))
                     ],
                     "Probability (%)": [round(p * 100, 1) for p in probs],
                 }
             ).sort_values("Probability (%)", ascending=False)
 
-            # With 28 classes, only show the top N so the chart stays readable
-            top_n = 10
-            probs_df_top = probs_df.head(top_n).sort_values(
-                "Probability (%)", ascending=True
+            st.markdown(f"**Probability breakdown**")
+
+            st.bar_chart(
+                probs_df.sort_values("Probability (%)", ascending=True).set_index(
+                    "Emotion"
+                ),
+                use_container_width=True,
             )
-
-            st.markdown(f"**Top {top_n} probability breakdown**")
-            st.bar_chart(probs_df_top.set_index("Emotion"), use_container_width=True)
-
-            with st.expander("Show full probability breakdown (all 28 classes)"):
-                st.dataframe(probs_df.reset_index(drop=True), use_container_width=True)
 
 # ---------------- PAGE 2: BATCH ----------------
 else:
@@ -223,12 +222,12 @@ else:
                 confs = model.predict_proba(vectors).max(axis=1)
 
                 result_df = df_upload.copy()
-                result_df["predicted_emotion"] = [label_mapping[p] for p in preds]
+                result_df["predicted_emotion"] = label_encoder.inverse_transform(preds)
                 result_df["confidence"] = np.round(confs * 100, 1)
 
                 st.dataframe(result_df, use_container_width=True)
 
-                st.markdown("**Emotion distribution**")
+                st.markdown("**Sentiment distribution**")
                 st.bar_chart(result_df["predicted_emotion"].value_counts())
 
                 csv_bytes = result_df.to_csv(index=False).encode("utf-8")
@@ -243,5 +242,5 @@ else:
 
 st.divider()
 st.caption(
-    "Built as a learning project · Linear SVM (calibrated) on TF-IDF features · GoEmotions dataset (28 classes)"
+    "Built as a learning project · Logistic Regression (class-balanced) on Bag-of-Words features"
 )
