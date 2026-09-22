@@ -100,7 +100,7 @@ st.markdown(
 st.divider()
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.markdown("**Emotion legend**")
+st.sidebar.markdown("**Sentiments**")
 for emo, meta in EMOTION_META.items():
     st.sidebar.markdown(
         f"<div class='legend-row'><span>{meta['emoji']} {emo.capitalize()}</span></div>",
@@ -155,7 +155,7 @@ if page == "Single sentence":
             vector = vectorizer.transform([cleaned])
             probs = model.predict_proba(vector)[0]
             pred_id = model.predict(vector)[0]
-            emotion = label_encoder.inverse_transform[pred_id][0]
+            emotion = label_encoder.inverse_transform([pred_id])[0]
             confidence = round(max(probs) * 100, 1)
             meta = EMOTION_META.get(emotion, DEFAULT_META)
 
