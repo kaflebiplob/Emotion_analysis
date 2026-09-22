@@ -8,6 +8,7 @@ import streamlit as st
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+import joblib
 
 for pkg in ("punkt", "stopwords", "punkt_tab"):
     try:
@@ -67,12 +68,9 @@ code, .mono { font-family: 'JetBrains Mono', monospace !important; }
 # ---------------- LOADING ----------------
 @st.cache_resource
 def load_artifacts():
-    with open("models/emotion_model.pkl", "rb") as f:
-        model = pickle.load(f)
-    with open("models/bow_vectorizer.pkl", "rb") as f:
-        vectorizer = pickle.load(f)
-    with open("models/label_encoder.pkl", "rb") as f:
-        encoder = pickle.load(f)
+    model = joblib.load("models/emotion_model.pkl")
+    vectorizer = joblib.load("models/bow_vectorizer.pkl")
+    encoder = joblib.load("models/label_encoder.pkl")
     return model, vectorizer, encoder
 
 
@@ -134,9 +132,9 @@ if page == "Single sentence":
         "Anger": "This makes me so angry, I can't believe it.",
         "Fear": "I feel scared and anxious about tomorrow.",
         "Joy": "I am so happy right now, this is the best day.",
-        "Love": "I love spending time with my family.",
-        "Sadness": "I miss my old friends so much.",
-        "Surprise": "I can't believe this actually happened.",
+        "Love": "I feel romantic today.",
+        "Sadness": "I feel really sad and lonely right now.",
+        "Surprise": "I was totally shocked by the news.",
     }
 
     st.caption("Try an example:")
