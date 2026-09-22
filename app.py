@@ -1,49 +1,29 @@
 import re
+import string
 import pickle
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 # ---------------- CONFIG ----------------
 st.set_page_config(
-    page_title="Emotion Detector",
+    page_title="Sentiment Analysis",
     page_icon="🎭",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Full GoEmotions label set (27 emotions + neutral)
+# Emotions
 EMOTION_META = {
-    "admiration": {"emoji": "🤩", "color": "#F2B705"},
-    "amusement": {"emoji": "😄", "color": "#F5A623"},
     "anger": {"emoji": "😡", "color": "#E45858"},
-    "annoyance": {"emoji": "😒", "color": "#D9784B"},
-    "approval": {"emoji": "👍", "color": "#6FCF97"},
-    "caring": {"emoji": "🤗", "color": "#F0679A"},
-    "confusion": {"emoji": "😕", "color": "#A97CD1"},
-    "curiosity": {"emoji": "🧐", "color": "#56B4D3"},
-    "desire": {"emoji": "😍", "color": "#E0559A"},
-    "disappointment": {"emoji": "😞", "color": "#7A7A9D"},
-    "disapproval": {"emoji": "👎", "color": "#C0555A"},
-    "disgust": {"emoji": "🤢", "color": "#7BA05B"},
-    "embarrassment": {"emoji": "😳", "color": "#E39BB3"},
-    "excitement": {"emoji": "🤩", "color": "#F2A93B"},
     "fear": {"emoji": "😨", "color": "#8E6FD1"},
-    "gratitude": {"emoji": "🙏", "color": "#4CAF7D"},
-    "grief": {"emoji": "😭", "color": "#5B5B70"},
     "joy": {"emoji": "😄", "color": "#F2B705"},
     "love": {"emoji": "❤️", "color": "#F0679A"},
-    "nervousness": {"emoji": "😬", "color": "#B08CD1"},
-    "optimism": {"emoji": "🌤️", "color": "#5AC98C"},
-    "pride": {"emoji": "😌", "color": "#D6A94C"},
-    "realization": {"emoji": "💡", "color": "#4C8BF5"},
-    "relief": {"emoji": "😮‍💨", "color": "#6FB1C9"},
-    "remorse": {"emoji": "😔", "color": "#8A6C6C"},
     "sadness": {"emoji": "😢", "color": "#4C8BF5"},
     "surprise": {"emoji": "😲", "color": "#5AC98C"},
-    "neutral": {"emoji": "😐", "color": "#999999"},
 }
 
 DEFAULT_META = {"emoji": "🤔", "color": "#999999"}
@@ -80,30 +60,30 @@ code, .mono { font-family: 'JetBrains Mono', monospace !important; }
 # ---------------- LOADING ----------------
 @st.cache_resource
 def load_artifacts():
-    with open("models/my_model.pkl", "rb") as f:
+    with open("models/emotion_model.pkl", "rb") as f:
         model = pickle.load(f)
-    with open("models/my_vectorizer.pkl", "rb") as f:
+    with open("models/bow_vectorizer.pkl", "rb") as f:
         vectorizer = pickle.load(f)
-    with open("models/label_mapping.pkl", "rb") as f:
-        mapping = pickle.load(f)
-    return model, vectorizer, mapping
+    with open("models/label_encoder.pkl", "rb") as f:
+        encoder = pickle.load(f)
+    return model, vectorizer, encoder
 
 
 stop_words = set(stopwords.words("english"))
-# Keep negation words — they matter a lot for emotion/sentiment signal
-for negation in ("not", "no", "nor", "never"):
-    stop_words.discard(negation)
 
 
 def clean_text(text):
     text = text.lower()
-    text = re.sub(r"[^a-z\s]", "", text)
-    words = [w for w in text.split() if w not in stop_words]
-    return " ".join(words)
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = re.sub(r"\d+", "", text)
+    text = text.encode("ascii", "ignore").decode("ascii")
+    words = word_tokenize(text)
+    cleaned = [w for w in words if w not in stop_words]
+    return " ".join(cleaned)
 
 
 try:
-    model, vectorizer, label_mapping = load_artifacts()
+    model, vectorizer, label_encoder = load_artifacts()
     model_loaded = True
 except Exception as e:
     model_loaded = False
@@ -112,8 +92,8 @@ except Exception as e:
 # ---------------- HERO ----------------
 st.markdown(
     """
-<div class="hero-title">🎭 Emotion Detector</div>
-<div class="hero-sub">Linear SVM (calibrated) + TF-IDF · trained on GoEmotions (28 emotion classes)</div>
+<div class="hero-title">🎭 Sentiment Analysis</div>
+<div class="hero-sub">Logistic Regression (class-balanced) + Bag-of-Words</div>
 """,
     unsafe_allow_html=True,
 )
@@ -128,15 +108,15 @@ for emo, meta in EMOTION_META.items():
     )
 st.sidebar.markdown("---")
 st.sidebar.caption(
-    "Model: Linear SVM (calibrated for probabilities)\n"
-    "Features: TF-IDF\n"
-    "Classes: 28 (GoEmotions)\n"
-    "Test accuracy: ~43% · Macro F1: ~0.36\n"
-    "Note: dataset is highly imbalanced — 'neutral' is ~34% of samples, "
-    "so macro F1 is the more meaningful metric here."
+    "Model: Logistic Regression (class_weight='balanced')\n"
+    "Features: Bag-of-Words\n"
+    "Classes: 6 (anger, fear, joy, love, sadness, surprise)\n"
+    "Test accuracy: ~89%\n"
+    "Note: surprise & love are the rarest classes and slightly less reliable."
 )
 
 page = st.sidebar.radio("Mode", ["Single sentence", "Batch (CSV/TXT)"])
+
 
 # ---------------- PAGE 1: SINGLE SENTENCE ----------------
 if page == "Single sentence":
