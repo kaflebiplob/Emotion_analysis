@@ -5,8 +5,15 @@ import pickle
 import numpy as np
 import pandas as pd
 import streamlit as st
+import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+
+for pkg in ("punkt", "stopwords", "punkt_tab"):
+    try:
+        nltk.data.find(f"tokenizers/{pkg}" if "punkt" in pkg else f"corpora/{pkg}")
+    except LookupError:
+        nltk.download(pkg)
 
 # ---------------- CONFIG ----------------
 st.set_page_config(
